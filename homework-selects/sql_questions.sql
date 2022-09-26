@@ -4,22 +4,6 @@ SELECT first_name, last_name, salary, job_title
 FROM employees
          LEFT JOIN jobs USING (job_id);
 
---just for tests
-SELECT *
-FROM EMPLOYEES;
-
-SELECT *
-FROM jobs;
-
-SELECT *
-FROM DEPARTMENTS;
-
-SELECT *
-FROM LOCATIONS;
-
-SELECT *
-FROM COUNTRIES;
-
 -- 2. the first and last name, department, city, and state province for each employee.
 SELECT first_name, last_name, department_name, city, state_province
 FROM employees
@@ -286,8 +270,16 @@ FROM employees;
 --33. the employee id, name ( first name and last name ), SalaryDrawn, AvgCompare (salary - the average salary of all employees)
     -- and the SalaryStatus column with a title HIGH and LOW respectively for those employees whose salary is more than and less than
     -- the average salary of all employees.
-
-
+SELECT employee_id, (first_name || ' ' || last_name) AS employee_name,
+       salary * commission_pct AS SalaryDrawn,
+       CASE WHEN salary >= avg_salary THEN 'HIGH'
+          ELSE 'LOW' END AS SalaryStatus,
+       salary - avg_salary as AvgCompare
+FROM employees,
+    (
+    SELECT AVG(salary) AS avg_salary
+    FROM employees
+);
 
 --34. all the employees who earn more than the average and who work in any of the IT departments.
 SELECT *
@@ -328,25 +320,143 @@ WHERE manager_id IN (
 SELECT (first_name || ' ' || last_name) AS employee_name
 FROM employees
          INNER JOIN (
-             SELECT department_id, SUM(salary) as total_salary
+             SELECT department_id, SUM(salary) AS total_salary
              FROM employees
              GROUP BY department_id
 ) USING (department_id)
 WHERE salary > total_salary * 0.5;
 
 --38. the employee id, name ( first name and last name ), salary, department name and city for all
+SELECT employee_id, (first_name || ' ' || last_name) AS employee_name, salary, department_name, city
+FROM employees
+    INNER JOIN departments USING (department_id)
+    INNER JOIN locations USING (location_id);
 
+--the employees who gets the salary as the salary earn by the employee which is maximum within the joining person January 1st, 2002 and December 31st, 2003.
+SELECT *
+FROM employees
+WHERE salary = (
+    SELECT MAX(salary)
+    FROM employees
+    WHERE hire_date BETWEEN DATE '2002-01-01' AND DATE '2003-12-31'
+    );
 
---the employees who gets the salary as the salary earn by the employee which is maximum within the joining person January 1st, 2002 and December 31st, 2003.  
 --39. the first and last name, salary, and department ID for all those employees who earn more than the average salary and arrange the list in descending order on salary.
+SELECT employee_id, first_name, last_name, salary, department_id
+FROM employees
+WHERE salary > (
+    SELECT AVG(salary)
+    FROM employees
+)
+ORDER BY salary DESC;
+
 --40. the first and last name, salary, and department ID for those employees who earn more than the maximum salary of a department which ID is 40.
+SELECT employee_id, first_name, last_name, salary, department_id
+FROM employees
+WHERE salary > (
+    SELECT MAX(salary)
+    FROM employees
+    WHERE department_id = 40
+);
+
 --41. the department name and Id for all departments where they located, that Id is equal to the Id for the location where department number 30 is located.
+SELECT department_id, department_name
+FROM departments
+WHERE location_id = (
+    SELECT location_id
+    FROM departments
+    WHERE department_id = 30
+);
+
 --42. the first and last name, salary, and department ID for all those employees who work in that department where the employee works who hold the ID 201.
+SELECT first_name, last_name, salary, department_id
+FROM employees
+WHERE department_id = (
+    SELECT department_id
+    FROM employees
+    WHERE employee_id = 201
+);
+
 --43. the first and last name, salary, and department ID for those employees whose salary is equal to the salary of the employee who works in that department which ID is 40.
+SELECT first_name, last_name, salary, department_id
+FROM employees
+WHERE salary IN (
+    SELECT salary
+    FROM employees
+    WHERE department_id = 40
+);
+
 --44. the first and last name, salary, and department ID for those employees who earn more than the minimum salary of a department which ID is 40.
+SELECT first_name, last_name, salary, department_id
+FROM employees
+WHERE salary > (
+    SELECT MIN(salary)
+    FROM employees
+    WHERE department_id = 40
+);
+
 --45. the first and last name, salary, and department ID for those employees who earn less than the minimum salary of a department which ID is 70.
+SELECT first_name, last_name, salary, department_id
+FROM employees
+WHERE salary > (
+    SELECT MIN(salary)
+    FROM employees
+    WHERE department_id = 40
+);
+
 --46. the first and last name, salary, and department ID for those employees who earn less than the average salary, and also work at the department where the employee Laura is working as a first name holder.
+SELECT first_name, last_name, salary, department_id
+FROM employees
+WHERE salary < (
+    SELECT AVG(salary)
+    FROM employees
+)
+  AND department_id = (
+    SELECT department_id
+    FROM employees
+    WHERE first_name = 'Laura'
+);
+
 --47. the full name (first and last name) of manager who is supervising 4 or more employees.
+SELECT (first_name || ' ' || last_name) AS employee_name
+FROM employees
+WHERE employee_id IN (
+    SELECT manager_id
+    FROM employees
+    GROUP BY manager_id
+    HAVING COUNT(manager_id) >= 4
+);
+
 --48. the details of the current job for those employees who worked as a Sales Representative in the past.
+SELECT *
+FROM jobs
+WHERE job_id IN (
+    SELECT job_id
+    FROM employees
+    WHERE employee_id IN(
+        SELECT DISTINCT employee_id
+        FROM job_history
+        WHERE job_id = (
+            SELECT job_id
+            FROM jobs
+            WHERE job_title = 'Sales Representative'
+        )
+    )
+);
+
 --49. all the infromation about those employees who earn second lowest salary of all the employees.
+SELECT *
+FROM employees
+WHERE salary IN (SELECT MIN(salary)
+                 FROM employees
+                 WHERE salary != (SELECT MIN(salary)
+                                  FROM employees)
+);
+
 --50. the department ID, full name (first and last name), salary for those employees who is highest salary drawar in a department.
+SELECT department_id, (first_name || ' ' || last_name) AS employee_name, salary
+FROM employees
+WHERE salary * commission_pct = (
+    SELECT MAX(salary * commission_pct)
+    FROM employees
+);
